@@ -46,7 +46,6 @@ class TankLevelWidget {
     var tankCard = PageUtils.createElement('div', null, 'tanklevelwidget-card', null, null);
     for (var i = 0; i < 10; i++) {
       var tankCardRegion = PageUtils.createElement('div', null, 'tanklevelwidget-card-region', null, tankCard);
-      if (i == 0) this.addNotification(tankCardRegion, tank);
       if (i == 9) this.addLegend(tankCardRegion, tank);
     }
     return(tankCard);
@@ -67,18 +66,8 @@ class TankLevelWidget {
     );
   }
 
-  addNotification(container, tank) {
-    container.classList.add('label');
-    var notification = PageUtils.createElement('span', null, 'text alert hidden', null, container);
-    this.signalkClient.registerCallback(
-      tank.path + ".currentLevel",
-      (v) => {
-      }
-    );
-  }
-   
   makeTankGraph(tank) {
-    let tankGraph = PageUtils.createElement('div', null, 'tank-graph', null, null);
+    let tankGraph = PageUtils.createElement('div', null, 'tanklevelwidget-graph', null, null);
     if (tank.meta.displayFormat.color) tankGraph.style.backgroundColor = tank.meta.displayFormat.color;
     let tankGraphPercent = PageUtils.createElement('div', null, 'tank-graph-percent', "---", tankGraph);
     this.signalkClient.registerCallback(tank.path + ".currentLevel", (v) => {
