@@ -11,24 +11,22 @@ class TankMonitorWidget {
     this.values = {};
     this.popup = { container: null, image: null, navleft: null, navright: null, selection: [ "graphs/day", "graphs/week", "graphs/month", "graphs/year" ] };
 
-    this.signalkClient.getEndpoints(endpoints => {
+    this.signalkClient.getAvailablePaths((endpoints) => {
       endpoints
       .filter(endpoint => (endpoint.startsWith('tanks.')))
       .map(endpoint => (endpoint.substr(0, endpoint.lastIndexOf('.'))))
       .reduce((a,v) => { if (!a.includes(v)) a.push(v); return(a); }, [])
       .forEach(endpoint => {
-        var meta = this.signalkClient.getValue(endpoint + ".currentLevel.meta");
-        if (meta) {
-          this.tanks.push({ path: endpoint, meta: meta });
-        }
+        var meta = this.signalkClient.getValueAsync(endpoint + ".currentLevel.meta");
+        if (meta) this.tanks.push({ path: endpoint, meta: meta });
       });
+
+      var tankChart = PageUtils.createElement('div', null, 'tankmonitorwidget', null, container);
+      this.tanks.forEach(tank => tankChart.appendChild(this.makeTankBar(tank)));
+
+      this.makePopup();
+      this.container.appendChild(this.popup.container);
     });
-
-    var tankChart = PageUtils.createElement('div', null, 'tankmonitorwidget', null, container);
-    this.tanks.forEach(tank => tankChart.appendChild(this.makeTankBar(tank)));
-
-    this.makePopup();
-    this.container.appendChild(this.popup.container);
   }
 
   makeTankBar(tank) {
@@ -57,8 +55,10 @@ class TankMonitorWidget {
     let tankLevel = PageUtils.createElement('span', null, 'tanklevel', null, tankData);
     tankData.appendChild(document.createTextNode(' / '));
     let tankCapacity = PageUtils.createElement('span', null, 'tankcapacity', null, tankData);
-    this.signalkClient.getValue(tank.path + ".capacity", (v) => { tankCapacity.innerHTML = this.getAdjustedValue(v, tank.meta.displayFormat.factor, tank.meta.displayFormat.places); });
-    this.signalkClient.registerCallback(
+    this.signalkClient.getValue(tank.path + ".capacity", (v) => {
+      tankCapacity.innerHTML = this.getAdjustedValue(v, tank.meta.displayFormat.factor, tank.meta.displayFormat.places);
+    });
+    this.signalkClient.onValue(
       tank.path + ".currentLevel",
       (v) => {
         tankLevel.innerHTML = this.getAdjustedValue(v * (tankCapacity.innerHTML / ((tank.meta.displayFormat.factor === undefined)?1:tank.meta.displayFormat.factor)), tank.meta.displayFormat.factor, tank.meta.displayFormat.places);
