@@ -11,22 +11,18 @@ class TankMonitorWidget {
     this.values = {};
     this.popup = { container: null, image: null, navleft: null, navright: null, selection: [ "graphs/day", "graphs/week", "graphs/month", "graphs/year" ] };
 
-    this.signalkClient.getAvailablePaths((endpoints) => {
-      endpoints
-      .filter(endpoint => (endpoint.startsWith('tanks.')))
-      .map(endpoint => (endpoint.substr(0, endpoint.lastIndexOf('.'))))
-      .reduce((a,v) => { if (!a.includes(v)) a.push(v); return(a); }, [])
-      .forEach(endpoint => {
-        var meta = this.signalkClient.getValueAsync(endpoint + ".currentLevel.meta");
-        if (meta) this.tanks.push({ path: endpoint, meta: meta });
-      });
+    var tankPaths = this.signalkClient.getAvailablePathsSync("^tanks\..*").reduce((a,p) => { var pn = p.substr(0, p.lastIndexOf('.')); if (!a.includes(pn)) a.push(pn); return(a); }, []);
 
-      var tankChart = PageUtils.createElement('div', null, 'tankmonitorwidget', null, container);
-      this.tanks.forEach(tank => tankChart.appendChild(this.makeTankBar(tank)));
-
-      this.makePopup();
-      this.container.appendChild(this.popup.container);
+    tankPaths.forEach(p => {
+      var meta = this.signalkClient.getValueSync(p + ".currentLevel.meta");
+      if ((meta) && (meta.displayFormat)) this.tanks.push({ path: p, meta: meta });
     });
+
+    var tankChart = PageUtils.createElement('div', null, 'tankmonitorwidget', null, container);
+    this.tanks.forEach(tank => tankChart.appendChild(this.makeTankBar(tank)));
+
+    this.makePopup();
+    this.container.appendChild(this.popup.container);
   }
 
   makeTankBar(tank) {
@@ -68,7 +64,7 @@ class TankMonitorWidget {
 
   makeTankGraph(tank) {
     let tankGraph = PageUtils.createElement('div', null, 'tankmonitorwidget-graph', null, null);
-    if (tank.meta.displayFormat.color) tankGraph.style.backgroundColor = tank.meta.displayFormat.color;
+    tankGraph.style.backgroundColor = (tank.meta.displayFormat.color !== undefined)?tank.meta.displayFormat.color:"#7f7f7f";
     let tankGraphPercent = PageUtils.createElement('div', null, 'tank-graph-percent', "---", tankGraph);
     this.signalkClient.registerCallback(tank.path + ".currentLevel", (v) => {
       var percent = "" + Math.floor((v + 0.005) * 100) + "%";
